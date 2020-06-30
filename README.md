@@ -2,7 +2,9 @@
 
 M5Stick-C + 自作センサーモジュールを BLE 対応心拍計として使用するためのソースコード.
 
-概要、自作センサーモジュールなどは を参照。
+![動作デモ](https://hankei6km.github.io/posts/2020-06-m5stic-c-heart-rate-monitor-ble-intro/heart_rate_monitor_ble_com.gif)
+
+概要については、「[M5StickC で BLE対応のスティックタイプな心拍計(概要) | SSD: SHORT SLOW DISTANCE](https://hankei6km.github.io/posts/2020-06-m5stic-c-heart-rate-monitor-ble-intro/)」を参照してください。
 
 ## インストール
 
