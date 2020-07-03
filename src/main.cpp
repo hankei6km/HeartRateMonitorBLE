@@ -44,6 +44,10 @@ movingAvg avgTemp(10); // およそ 25ms x 10 = 250ms 単位の平均となる(2
 // int16_t thrDist = 20;
 // movingAvg avgTemp(5);
 
+// テスト 2020-07-02 高 BPM 対応で閾値の距離を短く。平常時の計測だと細かい振れを拾ってしまう。
+// int16_t thrDist = 5;
+// movingAvg avgTemp(5);
+
 HeartRate rate = HeartRate();
 PeakHandler<int16_t> peak = PeakHandler<int16_t>();
 
