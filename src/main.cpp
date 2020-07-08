@@ -110,19 +110,16 @@ void setup()
   bleHR.setHeartRateNotifyInterval(1000 * 5);
   bleHR.onConnect([]() {
     deepSleep.sleep(1000 * 20); // connect 後はスリープしにくくする.
-    Serial.println("-- connect");
     drawBLEState.state(DrawBLEState::State::connected);
   });
   bleHR.onPassKeyNotify([](uint32_t passKey) {
     Serial.printf("PIN(PassKey): %d\n", passKey);
   });
   bleHR.onAuthentication([]() {
-    Serial.println("-- auth");
     drawBLEState.state(DrawBLEState::State::authenticate);
   });
   bleHR.onDisconnect([]() {
     deepSleep.sleep(1000 * 10); // disconnect 後はスリープしやすくする.
-    Serial.println("-- disconnect");
     drawBLEState.state(DrawBLEState::State::disconnected);
   });
   bleHR.start();
@@ -133,11 +130,18 @@ void setup()
   peak.onPeakPositive([](int16_t val) {
     digitalWrite(LED_BUILTIN, LOW);
     // drawBeatIcon.enable();
+    // TODO: ログのユーティリティ検討
+#if defined(LOGGING)
+    Serial.printf("peakP: %d\n", val);
+#endif
   });
   peak.onPeakNegative([](int16_t val) {
     digitalWrite(LED_BUILTIN, HIGH);
     // drawBeatIcon.disable();
     rate.beat(millis());
+#if defined(LOGGING)
+    Serial.printf("peakN: %d\n", val);
+#endif
   });
   peak.init(analogRead(ANALOG_IN));
 
@@ -207,7 +211,9 @@ void loop()
   {
     int avgVal = avgTemp.reading(val);
     peak.put(avgVal);
-    // Serial.printf("val: %d\n", avgVal);
+#if defined(LOGGING)
+    Serial.printf("val: %d\n", avgVal);
+#endif
 
     // -- rate
     drawRate.progress(rate.filling());
@@ -240,6 +246,7 @@ void loop()
       buf[1] = 0;
     }
     // Serial.printf("notify - %d %d\n", buf[0], r);
+    // Serial.printf("bpm: %d\n", r);
     return buf;
   });
 
