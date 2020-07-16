@@ -102,9 +102,14 @@ public:
                 {
                     // 算出できるサンプルがあれば平均で補完する
                     unsigned long avg = duration() / (unsigned long)(_beats.size() - 1);
-                    for (unsigned long b = _beats.back() + avg; b <= t; b = b + avg)
+                    unsigned long b = _beats.back() + avg;
+                    for (; b <= t; b = b + avg)
                     {
                         _beats.push_back(b);
+                    }
+                    if (t - (b - avg) > 300) // 最後に今回の t を追加(どの程度の幅があれば追加するかは、なんとなく)
+                    {
+                        _beats.push_back(t);
                     }
                 }
             }

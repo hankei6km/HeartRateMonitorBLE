@@ -199,6 +199,18 @@ void test_heart_rate_outiler_over(void)
     TEST_ASSERT_EQUAL(0, rate._beats.size());
 }
 
+void test_heart_rate_outiler_over_padding_t(void)
+{
+    HeartRate rate = HeartRate();
+    for (int i = 1; i < 7; i++)
+    {
+        rate.beat(i * 1001);
+    }
+    TEST_ASSERT_FALSE(rate.beat(9 * 1000));
+    TEST_ASSERT_EQUAL(9, rate._beats.size());
+    TEST_ASSERT_EQUAL(9 * 1000, rate._beats.back());
+}
+
 void test_heart_rate_rate(void)
 {
     HeartRate rate = HeartRate();
@@ -340,6 +352,7 @@ int main(int argc, char **argv)
     RUN_TEST(test_heart_rate_purge);
     RUN_TEST(test_heart_rate_beat);
     RUN_TEST(test_heart_rate_outiler_over);
+    RUN_TEST(test_heart_rate_outiler_over_padding_t);
     RUN_TEST(test_heart_rate_rate);
 
     RUN_TEST(test_peak_handler_positive);
