@@ -130,7 +130,7 @@ void test_heart_rate_effective(void)
     TEST_ASSERT_EQUAL(0, rate._effective(2 * 1000));
     rate._beats.push_back(1 * 1000);
     TEST_ASSERT_EQUAL(0, rate._effective(2 * 1000));
-    TEST_ASSERT_EQUAL(-1, rate._effective(1.1 * 1000));
+    TEST_ASSERT_EQUAL(-1, rate._effective(1.01 * 1000));
     TEST_ASSERT_EQUAL(1, rate._effective(3.1 * 1000));
 }
 
@@ -171,7 +171,7 @@ void test_heart_rate_beat(void)
 
     TEST_ASSERT_TRUE(rate.beat(1 * 1000));
     TEST_ASSERT_EQUAL(1, rate._beats.size());
-    TEST_ASSERT_FALSE(rate.beat(1.1 * 1000));
+    TEST_ASSERT_FALSE(rate.beat(1.01 * 1000));
     TEST_ASSERT_EQUAL(1, rate._beats.size());
     for (int i = 2; i < 12; i++)
     {

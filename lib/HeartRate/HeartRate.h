@@ -8,8 +8,8 @@ class HeartRate
 private:
     std::list<unsigned long> _beats; // milli()
     unsigned long _rateDuration = 5 * 1000;
-    unsigned long _effectiveIntervalMin = 0.3 * 1000;
     unsigned long _effectiveIntervalMax = 2 * 1000;
+    unsigned long _effectiveIntervalMin = 0.05 * 1000;
     unsigned long _purgeTrigger = 10 * 1000;
     unsigned long _outlierLim = 2;
     unsigned long _outlierCnt = 0;
