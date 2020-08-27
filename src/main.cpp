@@ -65,6 +65,20 @@ int16_t gadgetsLen = sizeof(gadgets) / sizeof(gadgets[0]);
 ScreenShot screenShot = ScreenShot(&M5.Lcd);
 #endif
 
+#if defined(LOGGING)
+float accX = 0.0F;
+float accY = 0.0F;
+float accZ = 0.0F;
+
+float gyroX = 0.0F;
+float gyroY = 0.0F;
+float gyroZ = 0.0F;
+
+float pitch = 0.0F;
+float roll = 0.0F;
+float yaw = 0.0F;
+#endif
+
 // Preferences preferences;
 
 void setup()
@@ -98,6 +112,10 @@ void setup()
   pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(LED_BUILTIN, HIGH);
   analogReadResolution(12);
+
+#if defined(LOGGING)
+  M5.IMU.Init();
+#endif
 
   // initialize ble.
   static std::string deviceName;
@@ -212,7 +230,23 @@ void loop()
     int avgVal = avgTemp.reading(val);
     peak.put(avgVal);
 #if defined(LOGGING)
-    Serial.printf("val: %d\n", avgVal);
+    // https://lang-ship.com/blog/work/m5stickc-imu-mpu6886/
+    // https://github.com/m5stack/M5StickC/blob/03fcbccfe0bc0d1c8191e92c1c7e6e0336e012ec/examples/Basics/IMU/IMU.ino
+    M5.IMU.getGyroData(&gyroX, &gyroY, &gyroZ);
+    M5.IMU.getAccelData(&accX, &accY, &accZ);
+    M5.IMU.getAhrsData(&pitch, &roll, &yaw);
+    Serial.printf("val: %ld, %6.2f, %6.2f, %6.2f, %5.2f, %5.2f, %5.2f, %5.2f, %5.2f, %5.2f, %d\n",
+                  now,
+                  gyroX,
+                  gyroY,
+                  gyroZ,
+                  accX,
+                  accY,
+                  accZ,
+                  pitch,
+                  roll,
+                  yaw,
+                  avgVal);
 #endif
 
     // -- rate
