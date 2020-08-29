@@ -150,7 +150,7 @@ void setup()
     // drawBeatIcon.enable();
     // TODO: ログのユーティリティ検討
 #if defined(LOGGING)
-    Serial.printf("peakP: %d\n", val);
+    Serial.printf("\"peakP\":true,");
 #endif
   });
   peak.onPeakNegative([](int16_t val) {
@@ -158,7 +158,7 @@ void setup()
     // drawBeatIcon.disable();
     rate.beat(millis());
 #if defined(LOGGING)
-    Serial.printf("peakN: %d\n", val);
+    Serial.printf("\"peakN\": true,");
 #endif
   });
   peak.init(analogRead(ANALOG_IN));
@@ -235,7 +235,7 @@ void loop()
     M5.IMU.getGyroData(&gyroX, &gyroY, &gyroZ);
     M5.IMU.getAccelData(&accX, &accY, &accZ);
     M5.IMU.getAhrsData(&pitch, &roll, &yaw);
-    Serial.printf("val: %ld, %6.2f, %6.2f, %6.2f, %5.2f, %5.2f, %5.2f, %5.2f, %5.2f, %5.2f, %d\n",
+    Serial.printf("\n{\"mills\": %ld, \"gyroX\":%6.2f, \"gyroY\":%6.2f, \"gyroZ\":%6.2f, \"accX\":%5.2f, \"accY\":%5.2f, \"accZ\":%5.2f, \"pitch\":%5.2f, \"roll\":%5.2f, \"yaw\":%5.2f, \"val\":%d,",
                   now,
                   gyroX,
                   gyroY,
