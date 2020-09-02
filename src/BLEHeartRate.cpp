@@ -58,6 +58,9 @@ void BLEHeartRate::init(std::string deviceName)
 
     pServiceHeartRate = pServer->createService(HEART_RATE_SERVICE_UUID);
     pServiceDeviceInformation = pServer->createService(DEVICE_INFORMATION_SERVICE_UUID);
+#if defined(LOGGING)
+    pServiceHrmDevLog = pServer->createService(HRM_DEV_LOG_SERVICE_UUID);
+#endif
 
     _pCharacteristicHeartRate = pServiceHeartRate->createCharacteristic(
         HEART_RATE_MEASUREMENT_CHAR_UUID,
@@ -73,12 +76,35 @@ void BLEHeartRate::init(std::string deviceName)
         BLECharacteristic::PROPERTY_READ);
     pCharacteristicBodySensor->setCallbacks(new dataBodyLocCb());
 
+#if defined(LOGGING)
+    _pCharacteristicHrmDevLogPrint = pServiceHrmDevLog->createCharacteristic(
+        HRM_DEV_LOG_PRINT_CHAR_UUID,
+        BLECharacteristic::PROPERTY_NOTIFY);
+    _pCharacteristicHrmDevLogPrint->setAccessPermissions(ESP_GATT_PERM_READ_ENCRYPTED | ESP_GATT_PERM_WRITE_ENCRYPTED);
+    BLE2902 *logBle9202 = new BLE2902();
+    logBle9202->setNotifications(true);
+    logBle9202->setAccessPermissions(ESP_GATT_PERM_READ_ENCRYPTED | ESP_GATT_PERM_WRITE_ENCRYPTED);
+    _pCharacteristicHrmDevLogPrint->addDescriptor(logBle9202);
+    // _pCharacteristicHrmDevLogPrint->setCallbacks(new _charLoggingCBs(_logPrint, 2)); // onNotify はコールされない。 _pCharacteristicHeartRate でセットするとコールされる。理由は不明(UUIDで切り替えてる?)
+
+    _pCharacteristicHrmDevLogStart = pServiceHrmDevLog->createCharacteristic(
+        HRM_DEV_LOG_START_CHAR_UUID,
+        BLECharacteristic::PROPERTY_WRITE_NR);
+    // BLECharacteristic::PROPERTY_WRITE);
+    _pCharacteristicHrmDevLogStart->setAccessPermissions(ESP_GATT_PERM_READ_ENCRYPTED | ESP_GATT_PERM_WRITE_ENCRYPTED);
+    // _pCharacteristicHrmDevLogStart->setAccessPermissions(ESP_GATT_PERM_READ_ENCRYPTED | ESP_GATT_PERM_WRITE_SIGNED);
+    _pCharacteristicHrmDevLogStart->setCallbacks(new _charLoggingCBs(_logPrint, 3)); // BODY_SENSOR_LOCATION_CHAR_UUID で onNotification がコールされないと、onWrite がコールされない、ような気がする
+#endif
+
     // pServiceHeartRate->start();
     // pServiceDeviceInformation->start();
 
     pAdvertising = pServer->getAdvertising();
     pAdvertising->addServiceUUID(DEVICE_INFORMATION_SERVICE_UUID);
     pAdvertising->addServiceUUID(HEART_RATE_SERVICE_UUID);
+#if defined(LOGGING)
+    pAdvertising->addServiceUUID(HRM_DEV_LOG_SERVICE_UUID);
+#endif
     // pAdvertising->start();
 
     BLESecurity *pSecurity = new BLESecurity();
@@ -100,6 +126,9 @@ void BLEHeartRate::start()
 {
     pServiceHeartRate->start();
     pServiceDeviceInformation->start();
+#if defined(LOGGING)
+    pServiceHrmDevLog->start();
+#endif
     pAdvertising->start();
     _prevMillis = 0;
 }
@@ -109,6 +138,9 @@ void BLEHeartRate::stop()
     pAdvertising->stop();
     pServiceDeviceInformation->stop();
     pServiceHeartRate->stop();
+#if defined(LOGGING)
+    pServiceHrmDevLog->stop();
+#endif
     _prevMillis = 0;
 }
 
@@ -150,3 +182,75 @@ void BLEHeartRate::notifyRate(std::function<uint8_t *()> cb)
         _prevMillis = m;
     }
 }
+
+#if defined(LOGGING)
+bool BLEHeartRate::hrmLogPrintEnabled()
+{
+    return _logPrint;
+}
+void BLEHeartRate::hrmLogResetBuf()
+{
+    _logBufUpdated = false;
+    memset(_logBuf, 0, 20);
+}
+void BLEHeartRate::hrmLogSetMillis(uint32_t *v)
+{
+    uint16_t t = *v;
+    memcpy(&_logBuf[0], &t, 2);
+    _logBufUpdated = true;
+}
+void BLEHeartRate::hrmLogSetGyro(float *x, float *y, float *z)
+{
+    int16_t t;
+    t = (*x * 100.0F);
+    memcpy(&_logBuf[2], &t, 2);
+    t = (*y * 100.0F);
+    memcpy(&_logBuf[4], &t, 2);
+    t = (*z * 100.0F);
+    memcpy(&_logBuf[6], &t, 2);
+    _logBufUpdated = true;
+}
+void BLEHeartRate::hrmLogSetAcc(float *x, float *y, float *z)
+{
+    int16_t t;
+    t = (*x * 1000.0F);
+    memcpy(&_logBuf[8], &t, 2);
+    t = (*y * 1000.0F);
+    memcpy(&_logBuf[10], &t, 2);
+    t = (*z * 1000.0F);
+    memcpy(&_logBuf[12], &t, 2);
+    _logBufUpdated = true;
+}
+void BLEHeartRate::hrmLogSetVal(int16_t *val)
+{
+    memcpy(&_logBuf[14], val, 2);
+    _logBufUpdated = true;
+}
+void BLEHeartRate::hrmLogSetBpm(int16_t *val)
+{
+    memcpy(&_logBuf[16], val, 2);
+    _logBufUpdated = true;
+}
+void BLEHeartRate::hrmLogSetPeakP()
+{
+    _logBuf[18] = _logBuf[18] | 0x01;
+    _logBufUpdated = true;
+}
+void BLEHeartRate::hrmLogSetPeakN()
+{
+    _logBuf[18] = _logBuf[18] | 0x02;
+    _logBufUpdated = true;
+}
+void BLEHeartRate::hrmLogNotifyBuf()
+{
+    unsigned long m = millis();
+    if (_logPrint && _logBufUpdated)
+    {
+        // Serial.printf("\nnoti:\n");
+        _pCharacteristicHrmDevLogPrint->setValue(_logBuf, 20);
+        _pCharacteristicHrmDevLogPrint->notify();
+        _prevMillis = m;
+        // hrmLogResetBuf();
+    }
+}
+#endif

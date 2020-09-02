@@ -11,18 +11,36 @@
 
 #define DEVICE_INFORMATION_SERVICE_UUID "180A"
 #define HEART_RATE_SERVICE_UUID "180D"
+#if defined(LOGGING)
+// #define HRM_DEV_LOG_SERVICE_UUID "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
+#define HRM_DEV_LOG_SERVICE_UUID "631d0001-cbb8-4619-af07-48060160121c"
+#endif
 
 #define BODY_SENSOR_LOCATION_CHAR_UUID "2A38"
 #define HEART_RATE_MEASUREMENT_CHAR_UUID "2A37"
+#if defined(LOGGING)
+#define HRM_DEV_LOG_PRINT_CHAR_UUID "631d0002-cbb8-4619-af07-48060160121c"
+#define HRM_DEV_LOG_START_CHAR_UUID "631d0003-cbb8-4619-af07-48060160121c"
+#endif
 
 class BLEHeartRate
 {
 private:
     BLEService *pServiceHeartRate;
     BLEService *pServiceDeviceInformation;
+#if defined(LOGGING)
+    BLEService *pServiceHrmDevLog;
+#endif
 
     BLECharacteristic *_pCharacteristicHeartRate;
     BLECharacteristic *pCharacteristicBodySensor;
+#if defined(LOGGING)
+    BLECharacteristic *_pCharacteristicHrmDevLogPrint;
+    BLECharacteristic *_pCharacteristicHrmDevLogStart;
+    bool _logPrint;
+    bool _logBufUpdated;
+    uint8_t _logBuf[20];
+#endif
 
     BLEAdvertising *pAdvertising;
 
@@ -111,6 +129,32 @@ private:
         }
     };
 
+#if defined(LOGGING)
+    class _charLoggingCBs : public BLECharacteristicCallbacks
+    {
+    private:
+        bool &_logPrint;
+        uint8_t _ikey;
+
+    public:
+        _charLoggingCBs(bool &logPrint, uint8_t key) : _logPrint(logPrint), _ikey(key){};
+        void onWrite(BLECharacteristic *pCharacteristic)
+        {
+            // Serial.printf("write:%d\n", _ikey);
+            pCharacteristic->getData();
+            _logPrint = true;
+        }
+        void onNotify(BLECharacteristic *pCharacteristic)
+        {
+            // Serial.printf("noti:%d\n", _ikey);
+        }
+        void onStatus(BLECharacteristic *pCharacteristic, Status s, uint32_t code)
+        {
+            // Serial.printf("stat:%d\n", _ikey);
+        }
+    };
+#endif
+
 public:
     BLEHeartRate(){};
     void init(std::string deviceName);
@@ -124,6 +168,18 @@ public:
     void onAuthentication(std::function<void()> cb);
 
     void notifyRate(std::function<uint8_t *()> cb);
+#if defined(LOGGING)
+    bool hrmLogPrintEnabled();
+    void hrmLogResetBuf();
+    void hrmLogSetMillis(uint32_t *v);
+    void hrmLogSetGyro(float *x, float *y, float *z);
+    void hrmLogSetAcc(float *x, float *y, float *z);
+    void hrmLogSetVal(int16_t *v);
+    void hrmLogSetBpm(int16_t *v);
+    void hrmLogSetPeakP();
+    void hrmLogSetPeakN();
+    void hrmLogNotifyBuf();
+#endif
 };
 
 #endif

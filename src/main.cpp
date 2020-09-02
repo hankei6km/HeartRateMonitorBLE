@@ -151,6 +151,7 @@ void setup()
     // TODO: ログのユーティリティ検討
 #if defined(LOGGING)
     Serial.printf("\"peakP\":true,");
+    bleHR.hrmLogSetPeakP();
 #endif
   });
   peak.onPeakNegative([](int16_t val) {
@@ -159,6 +160,7 @@ void setup()
     rate.beat(millis());
 #if defined(LOGGING)
     Serial.printf("\"peakN\": true,");
+    bleHR.hrmLogSetPeakN();
 #endif
   });
   peak.init(analogRead(ANALOG_IN));
@@ -208,6 +210,10 @@ void draw(TFT_eSPI &tft, bool force = false)
 // static unsigned long prevTick = 0;
 void loop()
 {
+#if defined(LOGGING)
+  bleHR.hrmLogResetBuf();
+#endif
+
   M5.update();
   if (M5.BtnB.wasPressed())
   {
@@ -229,29 +235,41 @@ void loop()
   {
     int avgVal = avgTemp.reading(val);
     peak.put(avgVal);
+
 #if defined(LOGGING)
     // https://lang-ship.com/blog/work/m5stickc-imu-mpu6886/
     // https://github.com/m5stack/M5StickC/blob/03fcbccfe0bc0d1c8191e92c1c7e6e0336e012ec/examples/Basics/IMU/IMU.ino
     M5.IMU.getGyroData(&gyroX, &gyroY, &gyroZ);
     M5.IMU.getAccelData(&accX, &accY, &accZ);
     M5.IMU.getAhrsData(&pitch, &roll, &yaw);
-    Serial.printf("\n{\"mills\": %ld, \"gyroX\":%6.2f, \"gyroY\":%6.2f, \"gyroZ\":%6.2f, \"accX\":%5.2f, \"accY\":%5.2f, \"accZ\":%5.2f, \"pitch\":%5.2f, \"roll\":%5.2f, \"yaw\":%5.2f, \"val\":%d,",
-                  now,
-                  gyroX,
-                  gyroY,
-                  gyroZ,
-                  accX,
-                  accY,
-                  accZ,
-                  pitch,
-                  roll,
-                  yaw,
-                  avgVal);
+    if (!bleHR.hrmLogPrintEnabled())
+    {
+      Serial.printf("\n{\"mills\": %ld, \"gyroX\":%6.2f, \"gyroY\":%6.2f, \"gyroZ\":%6.2f, \"accX\":%5.2f, \"accY\":%5.2f, \"accZ\":%5.2f, \"pitch\":%5.2f, \"roll\":%5.2f, \"yaw\":%5.2f, \"val\":%d,",
+                    now,
+                    gyroX,
+                    gyroY,
+                    gyroZ,
+                    accX,
+                    accY,
+                    accZ,
+                    pitch,
+                    roll,
+                    yaw,
+                    avgVal);
+    }
+    bleHR.hrmLogSetMillis((uint32_t *)&now);
+    bleHR.hrmLogSetGyro(&gyroX, &gyroY, &gyroZ);
+    bleHR.hrmLogSetAcc(&accX, &accY, &accZ);
+    bleHR.hrmLogSetVal((int16_t *)&avgVal);
 #endif
 
     // -- rate
     drawRate.progress(rate.filling());
-    drawRate.rate(rate.rate(now));
+    int16_t r = rate.rate(now);
+    drawRate.rate(r);
+#if defined(LOGGING)
+    bleHR.hrmLogSetBpm(&r);
+#endif
 
     // -- plotter
     drawPlotter.plot(avgVal);
@@ -296,6 +314,10 @@ void loop()
   //     return buf;
   //   });
   // }
+
+#if defined(LOGGING)
+  bleHR.hrmLogNotifyBuf();
+#endif
 
   deepSleep.tick();
 
