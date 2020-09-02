@@ -148,6 +148,7 @@ void setup()
   peak.onPeakPositive([](int16_t val) {
     digitalWrite(LED_BUILTIN, LOW);
     // drawBeatIcon.enable();
+    rate.beat(millis());
     // TODO: ログのユーティリティ検討
 #if defined(LOGGING)
     Serial.printf("\"peakP\":true,");
@@ -157,7 +158,6 @@ void setup()
   peak.onPeakNegative([](int16_t val) {
     digitalWrite(LED_BUILTIN, HIGH);
     // drawBeatIcon.disable();
-    rate.beat(millis());
 #if defined(LOGGING)
     Serial.printf("\"peakN\": true,");
     bleHR.hrmLogSetPeakN();
