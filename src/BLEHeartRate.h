@@ -12,6 +12,7 @@
 #define DEVICE_INFORMATION_SERVICE_UUID "180A"
 #define HEART_RATE_SERVICE_UUID "180D"
 #if defined(LOGGING)
+#define HRM_DEV_LOG_MUT_SIZE 200
 // #define HRM_DEV_LOG_SERVICE_UUID "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
 #define HRM_DEV_LOG_SERVICE_UUID "631d0001-cbb8-4619-af07-48060160121c"
 #endif
@@ -39,7 +40,21 @@ private:
     BLECharacteristic *_pCharacteristicHrmDevLogStart;
     bool _logPrint;
     bool _logBufUpdated;
-    uint8_t _logBuf[20];
+    unsigned long _logMillis;
+    float _logGyroX;
+    float _logGyroY;
+    float _logGyroZ;
+    float _logAccX;
+    float _logAccY;
+    float _logAccZ;
+    float _logPitch;
+    float _logRoll;
+    float _logYaw;
+    int16_t _logVal;
+    int16_t _logBpm;
+    bool _logPeakP;
+    bool _logPeakN;
+    uint8_t _logBuf[HRM_DEV_LOG_MUT_SIZE];
 #endif
 
     BLEAdvertising *pAdvertising;
@@ -174,6 +189,7 @@ public:
     void hrmLogSetMillis(uint32_t *v);
     void hrmLogSetGyro(float *x, float *y, float *z);
     void hrmLogSetAcc(float *x, float *y, float *z);
+    void hrmLogSetAhrd(float *pitch, float *roll, float *yaw);
     void hrmLogSetVal(int16_t *v);
     void hrmLogSetBpm(int16_t *v);
     void hrmLogSetPeakP();
