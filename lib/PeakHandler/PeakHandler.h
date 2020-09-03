@@ -5,8 +5,8 @@
 template <typename T>
 class PeakHandler
 {
-    std::function<void(T val)> _positiveHandler = [](T val) {};
-    std::function<void(T val)> _negativeHandler = [](T val) {};
+    std::function<void(unsigned long, T val)> _positiveHandler = [](unsigned long now, T val) {};
+    std::function<void(unsigned long, T val)> _negativeHandler = [](unsigned long now, T val) {};
 
     T _prevVal = 0;
     int _prevDir = 0;
@@ -33,12 +33,12 @@ public:
         return ret;
     };
 
-    void onPeakPositive(std::function<void(T val)> cb)
+    void onPeakPositive(std::function<void(unsigned long now, T val)> cb)
     {
         _positiveHandler = cb;
     };
 
-    void onPeakNegative(std::function<void(T val)> cb)
+    void onPeakNegative(std::function<void(unsigned long now, T val)> cb)
     {
         _negativeHandler = cb;
     };
@@ -54,7 +54,7 @@ public:
         // _peakNegative = val;
     };
 
-    bool put(T val)
+    bool put(unsigned long now, T val)
     {
         bool ret = false;
         T dlt = val - _prevVal;
@@ -72,7 +72,7 @@ public:
                     if (_prevPeak != 1)
                     {
                         // 前回と同じ側のピークはハンドリングしない(情報の更新はする)
-                        _positiveHandler(_prevVal);
+                        _positiveHandler(now, _prevVal);
                         ret = true;
                         _prevPeak = 1;
                     }
@@ -84,7 +84,7 @@ public:
                     if (_prevPeak != -1)
                     {
                         // 前回と同じ側のピークはハンドリングしない(情報の更新はする)
-                        _negativeHandler(_prevVal);
+                        _negativeHandler(now, _prevVal);
                         ret = true;
                         _prevPeak = -1;
                     }

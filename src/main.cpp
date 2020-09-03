@@ -145,17 +145,17 @@ void setup()
   // initialize peak detection.
   avgTemp.begin();
   peak.setThrDist(thrDist);
-  peak.onPeakPositive([](int16_t val) {
+  peak.onPeakPositive([](unsigned long now, int16_t val) {
     digitalWrite(LED_BUILTIN, LOW);
     // drawBeatIcon.enable();
-    rate.beat(millis());
+    rate.beat(now);
     // TODO: ログのユーティリティ検討
 #if defined(LOGGING)
     Serial.printf("\"peakP\":true,");
     bleHR.hrmLogSetPeakP();
 #endif
   });
-  peak.onPeakNegative([](int16_t val) {
+  peak.onPeakNegative([](unsigned long now, int16_t val) {
     digitalWrite(LED_BUILTIN, HIGH);
     // drawBeatIcon.disable();
 #if defined(LOGGING)
@@ -234,7 +234,7 @@ void loop()
   if (val < 4095) // 計測中(センサーの近くに何かある).
   {
     int avgVal = avgTemp.reading(val);
-    peak.put(avgVal);
+    peak.put(now, avgVal);
 
 #if defined(LOGGING)
     // https://lang-ship.com/blog/work/m5stickc-imu-mpu6886/

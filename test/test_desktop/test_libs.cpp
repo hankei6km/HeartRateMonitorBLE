@@ -234,50 +234,62 @@ void test_heart_rate_rate(void)
 
 void test_peak_handler_positive(void)
 {
+    uint32_t posNow = 0;
     int16_t posVal = 0;
+    uint32_t negNow = 0;
     int16_t negVal = 0;
     int posCnt = 0;
     int negCnt = 0;
     PeakHandler<int16_t> peak = PeakHandler<int16_t>();
     peak.init(100);
-    peak.onPeakPositive([&posVal, &posCnt](int16_t val) {
+    peak.onPeakPositive([&posNow, &posVal, &posCnt](unsigned long now, int16_t val) {
+        posNow = now;
         posVal = val;
         posCnt++;
     });
-    peak.onPeakNegative([&negVal, &negCnt](int16_t val) {
+    peak.onPeakNegative([&negNow, &negVal, &negCnt](unsigned long now, int16_t val) {
+        negNow = now;
         negVal = val;
         negCnt++;
     });
 
-    TEST_ASSERT_FALSE(peak.put(100));
-    TEST_ASSERT_TRUE(peak.put(50));
+    TEST_ASSERT_FALSE(peak.put(20, 100));
+    TEST_ASSERT_TRUE(peak.put(40, 50));
+    TEST_ASSERT_EQUAL_UINT32(40, posNow);
     TEST_ASSERT_EQUAL_INT16(100, posVal);
     TEST_ASSERT_EQUAL(1, posCnt);
+    TEST_ASSERT_EQUAL_UINT32(0, negVal);
     TEST_ASSERT_EQUAL_INT16(0, negVal);
     TEST_ASSERT_EQUAL(0, negCnt);
 }
 
 void test_peak_handler_negative(void)
 {
+    uint32_t posNow = 0;
     int16_t posVal = 0;
+    uint32_t negNow = 0;
     int16_t negVal = 0;
     int posCnt = 0;
     int negCnt = 0;
     PeakHandler<int16_t> peak = PeakHandler<int16_t>();
     peak.init(100);
-    peak.onPeakPositive([&posVal, &posCnt](int16_t val) {
+    peak.onPeakPositive([&posNow, &posVal, &posCnt](unsigned long now, int16_t val) {
+        posNow = now;
         posVal = val;
         posCnt++;
     });
-    peak.onPeakNegative([&negVal, &negCnt](int16_t val) {
+    peak.onPeakNegative([&negNow, &negVal, &negCnt](unsigned long now, int16_t val) {
+        negNow = now;
         negVal = val;
         negCnt++;
     });
 
-    TEST_ASSERT_FALSE(peak.put(100));
-    TEST_ASSERT_TRUE(peak.put(150));
+    TEST_ASSERT_FALSE(peak.put(20, 100));
+    TEST_ASSERT_TRUE(peak.put(40, 150));
+    TEST_ASSERT_EQUAL_UINT32(0, posNow);
     TEST_ASSERT_EQUAL_INT16(0, posVal);
     TEST_ASSERT_EQUAL(0, posCnt);
+    TEST_ASSERT_EQUAL_UINT32(40, negNow);
     TEST_ASSERT_EQUAL_INT16(100, negVal);
     TEST_ASSERT_EQUAL(1, negCnt);
 }
@@ -287,51 +299,59 @@ void test_peak_handler_thr_dist(void)
     {
         PeakHandler<int16_t> peak = PeakHandler<int16_t>();
         peak.init(100);
-        TEST_ASSERT_TRUE_MESSAGE(peak.put(150), "handle negative:default");
-        TEST_ASSERT_TRUE_MESSAGE(peak.put(100), "handle positive:defailt");
+        TEST_ASSERT_TRUE_MESSAGE(peak.put(20, 150), "handle negative:default");
+        TEST_ASSERT_TRUE_MESSAGE(peak.put(40, 100), "handle positive:defailt");
     }
 
     {
         PeakHandler<int16_t> peak = PeakHandler<int16_t>();
         peak.init(100);
         peak.setThrDist(300);
-        TEST_ASSERT_TRUE_MESSAGE(peak.put(150), "handle negative:300"); // こ時点では閾値は古い値のまま
-        TEST_ASSERT_FALSE_MESSAGE(peak.put(100), "handle positive:300");
+        TEST_ASSERT_TRUE_MESSAGE(peak.put(20, 150), "handle negative:300"); // こ時点では閾値は古い値のまま
+        TEST_ASSERT_FALSE_MESSAGE(peak.put(40, 100), "handle positive:300");
     }
 }
 
 void test_peak_handler_freq(void)
 {
     int16_t posVal[] = {0, 0, 0};
+    uint32_t posNow[] = {0, 0, 0};
     int16_t negVal[] = {0, 0, 0};
+    uint32_t negNow[] = {0, 0, 0};
     int posCnt = 0;
     int negCnt = 0;
     PeakHandler<int16_t> peak = PeakHandler<int16_t>();
     peak.init(100);
-    peak.onPeakPositive([&posVal, &posCnt](int16_t val) {
+    peak.onPeakPositive([&posNow, &posVal, &posCnt](unsigned long now, int16_t val) {
         TEST_ASSERT_LESS_THAN_INT_MESSAGE(sizeof(posVal) / sizeof(posVal[0]), posCnt, "overflow pos");
+        posNow[posCnt] = now;
         posVal[posCnt] = val;
         posCnt++;
     });
-    peak.onPeakNegative([&negVal, &negCnt](int16_t val) {
+    peak.onPeakNegative([&negNow, &negVal, &negCnt](unsigned long now, int16_t val) {
         TEST_ASSERT_LESS_THAN_INT_MESSAGE(sizeof(negVal) / sizeof(posVal[0]), negCnt, "overflow neg");
+        negNow[negCnt] = now;
         negVal[negCnt] = val;
         negCnt++;
     });
 
-    peak.put(150);
-    peak.put(140);
-    peak.put(142);
-    peak.put(130); // 直前の値は negative との幅が狭いので positive とされない
-    peak.put(144); // 直前の値は negative が連続しているので、negative としてハンドルされない(negativeとして閾値の更新などはされている)
-    peak.put(100); // 直前の値は negative との幅が広いので positive とされる
-    peak.put(110);
-    peak.put(90);
+    peak.put(20, 150);
+    peak.put(40, 140);
+    peak.put(60, 142);
+    peak.put(80, 130);  // 直前の値は negative との幅が狭いので positive とされない
+    peak.put(100, 144); // 直前の値は negative が連続しているので、negative としてハンドルされない(negativeとして閾値の更新などはされている)
+    peak.put(120, 100); // 直前の値は negative との幅が広いので positive とされる
+    peak.put(140, 110);
+    peak.put(160, 90);
 
-    int16_t posEx[] = {150, 144, 110};
-    TEST_ASSERT_EQUAL_INT16_ARRAY_MESSAGE(posEx, posVal, 3, "array pos");
-    int16_t negEx[] = {100, 140, 100};
-    TEST_ASSERT_EQUAL_INT16_ARRAY_MESSAGE(negEx, negVal, 3, "array neg");
+    uint32_t posNowEx[] = {40, 120, 160};
+    TEST_ASSERT_EQUAL_UINT32_ARRAY_MESSAGE(posNowEx, posNow, 3, "array now pos");
+    int16_t posValEx[] = {150, 144, 110};
+    TEST_ASSERT_EQUAL_INT16_ARRAY_MESSAGE(posValEx, posVal, 3, "array val pos");
+    uint32_t negNowEx[] = {20, 60, 140};
+    TEST_ASSERT_EQUAL_UINT32_ARRAY_MESSAGE(negNowEx, negNow, 3, "array now neg");
+    int16_t negValEx[] = {100, 140, 100};
+    TEST_ASSERT_EQUAL_INT16_ARRAY_MESSAGE(negValEx, negVal, 3, "array val neg");
 }
 
 int main(int argc, char **argv)
