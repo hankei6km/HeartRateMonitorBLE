@@ -65,7 +65,7 @@ $ pio device monitor -b 115200 | sed -e 's/,$/}/'
 
 ## ログ(BLE経由)
 
-以下のコマンドでログ出力用のファームウエアへ入れ替え後、`misc/log/hrm_dev_log_dump.py` で接続。
+以下のコマンドでログ出力用のファームウエアへ入れ替え後、`misc/scripts/hrm_dev_log_dump.py` で接続。
 
 ```
 $ pio run -e m5stick-c_logging -t upload
@@ -77,7 +77,7 @@ $ python3 hrm_dev_log_dump.py -a "xx:xx:xx:xx:xx:xx"
 - Python スクリプトは Python 3.7 で動作確認しています。
 - 別途 [bluepy](https://github.com/IanHarvey/bluepy) が必要です。
 
-また、以下の `misc/log/jsonl2series.js` で ApexChart.js で扱いやすいように series 化できます。
+また、以下の `misc/scripts/jsonl2series.js` で ApexChart.js で扱いやすいように series 化できます。
 
 ```
 $ cat log.jsonl | node jsonl2series.js
