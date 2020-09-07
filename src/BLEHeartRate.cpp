@@ -43,7 +43,10 @@ void BLEHeartRate::init(std::string deviceName)
 
     BLEDevice::init(deviceName);
 #if defined(LOGGING)
-    BLEDevice::setMTU(HRM_DEV_LOG_MUT_SIZE);
+    // peripheral 側で set しても変更されない(err は 0 が返ってきている).
+    // 以下の onConnect のコールバック内で実行しても同じ.
+    // central 側から set してくる(変更のイベント?)のを待つもの?
+    BLEDevice::setMTU(HRM_DEV_LOG_MTU_SIZE);
 #endif
 
     BLEServer *pServer = BLEDevice::createServer();
@@ -194,98 +197,73 @@ bool BLEHeartRate::hrmLogPrintEnabled()
 void BLEHeartRate::hrmLogResetBuf()
 {
     _logBufUpdated = false;
-    _logMillis = 0;
-    _logGyroX = 0.0F;
-    _logGyroY = 0.0F;
-    _logGyroZ = 0.0F;
-    _logAccX = 0.0F;
-    _logAccY = 0.0F;
-    _logAccZ = 0.0F;
-    _logPitch = 0.0F;
-    _logRoll = 0.0F;
-    _logYaw = 0.0F;
-    _logVal = 0.0F;
-    _logBpm = -1;
-    _logPeakP = false;
-    _logPeakN = false;
+    memset(_logBuf, 0, HRM_DEV_LOG_MTU_SIZE);
 }
 void BLEHeartRate::hrmLogSetMillis(uint32_t *v)
 {
-    _logMillis = *v;
+    memcpy(&_logBuf[HRM_DEV_LOG_FMT_MILLIS], v, 2);
     _logBufUpdated = true;
 }
 void BLEHeartRate::hrmLogSetGyro(float *x, float *y, float *z)
 {
-    _logGyroX = *x;
-    _logGyroY = *y;
-    _logGyroZ = *z;
+    int16_t t;
+    t = (*x * 100.0F);
+    memcpy(&_logBuf[HRM_DEV_LOG_FMT_GYRO_X], &t, 2);
+    t = (*y * 100.0F);
+    memcpy(&_logBuf[HRM_DEV_LOG_FMT_GYRO_Y], &t, 2);
+    t = (*z * 100.0F);
+    memcpy(&_logBuf[HRM_DEV_LOG_FMT_GYRO_Z], &t, 2);
     _logBufUpdated = true;
 }
 void BLEHeartRate::hrmLogSetAcc(float *x, float *y, float *z)
 {
-    _logAccX = *x;
-    _logAccY = *y;
-    _logAccZ = *z;
+    int16_t t;
+    t = (*x * 1000.0F);
+    memcpy(&_logBuf[HRM_DEV_LOG_FMT_ACC_X], &t, 2);
+    t = (*y * 1000.0F);
+    memcpy(&_logBuf[HRM_DEV_LOG_FMT_ACC_Y], &t, 2);
+    t = (*z * 1000.0F);
+    memcpy(&_logBuf[HRM_DEV_LOG_FMT_ACC_Z], &t, 2);
     _logBufUpdated = true;
 }
-void BLEHeartRate::hrmLogSetAhrd(float *pitch, float *roll, float *yaw)
+void BLEHeartRate::hrmLogSetAhrs(float *pitch, float *roll, float *yaw)
 {
-    _logPitch = *pitch;
-    _logRoll = *roll;
-    _logYaw = *yaw;
+    int16_t t;
+    t = (*pitch * 100.0F);
+    memcpy(&_logBuf[HRM_DEV_LOG_FMT_PITCH], &t, 2);
+    t = (*roll * 100.0F);
+    memcpy(&_logBuf[HRM_DEV_LOG_FMT_ROLL], &t, 2);
+    t = (*yaw * 100.0F);
+    memcpy(&_logBuf[HRM_DEV_LOG_FMT_YAW], &t, 2);
     _logBufUpdated = true;
 }
 void BLEHeartRate::hrmLogSetVal(int16_t *val)
 {
-    _logVal = *val;
+    memcpy(&_logBuf[HRM_DEV_LOG_FMT_VAL], val, 2);
     _logBufUpdated = true;
 }
 void BLEHeartRate::hrmLogSetBpm(int16_t *val)
 {
-    // memcpy(&_logBuf[16], val, 2);
-    _logBpm = *val;
+    memcpy(&_logBuf[HRM_DEV_LOG_FMT_BPM], val, 2);
     _logBufUpdated = true;
 }
 void BLEHeartRate::hrmLogSetPeakP()
 {
-    _logPeakP = true;
+    _logBuf[HRM_DEV_LOG_FMT_EXT] = _logBuf[HRM_DEV_LOG_FMT_EXT] | 0x01;
     _logBufUpdated = true;
 }
 void BLEHeartRate::hrmLogSetPeakN()
 {
-    _logPeakN = true;
+    _logBuf[HRM_DEV_LOG_FMT_EXT] = _logBuf[HRM_DEV_LOG_FMT_EXT] | 0x02;
     _logBufUpdated = true;
 }
 void BLEHeartRate::hrmLogNotifyBuf()
 {
-    unsigned long m = millis();
     if (_logPrint && _logBufUpdated)
     {
         // Serial.printf("\nnoti:\n");
-        //_pCharacteristicHrmDevLogPrint->setValue(_logBuf, 20);
-
-        // sprintf((char *)&_logBuf[strlen((char *)_logBuf)], "\"millis\":%ld,", (unsigned int)*v);
-        // sprintf((char *)&_logBuf[strlen((char *)_logBuf)], "\"gyroX\":%5.2f,\"gyroY\":%5.2f,\"gyroZ\":%5.2f,", *x, *y, *z);
-        // sprintf((char *)&_logBuf[strlen((char *)_logBuf)], "\"accX\":%6.2f,\"accY\":%6.2f,\"accZ\":%6.2f,", *x, *y, *z);
-        // sprintf((char *)&_logBuf[strlen((char *)_logBuf)], "\"pitch\":%5.2f,\"roll\":%5.2f,\"yaw\":%5.2f,", *pitch, *roll, *yaw);
-        // sprintf((char *)&_logBuf[strlen((char *)_logBuf)], "\"val\":%d,", *val);
-        // sprintf((char *)&_logBuf[strlen((char *)_logBuf)], "\"bpm\":%d,", *val);
-        // sprintf((char *)&_logBuf[strlen((char *)_logBuf)], "\"peakP\":true,");
-        // sprintf((char *)&_logBuf[strlen((char *)_logBuf)], "\"peakN\":true,");
-
-        sprintf((char *)_logBuf, "{\"millis\":%lu,\"gyroX\":%5.2f,\"gyroY\":%5.2f,\"gyroZ\":%5.2f,\"accX\":%6.2f,\"accY\":%6.2f,\"accZ\":%6.2f,\"pitch\":%5.2f,\"roll\":%5.2f,\"yaw\":%5.2f,\"bpm\":%d,\"bpm\":%d,\"peakP\":%s,\"peakN\":%s}\n",
-                _logMillis,
-                _logGyroX, _logGyroY, _logGyroZ,
-                _logAccX, _logAccY, _logAccZ,
-                _logPitch, _logRoll, _logYaw,
-                _logVal,
-                _logBpm,
-                _logPeakP ? "true" : "false",
-                _logPeakN ? "true" : "false");
-        _pCharacteristicHrmDevLogPrint->setValue(_logBuf, strlen((char *)_logBuf));
-
+        _pCharacteristicHrmDevLogPrint->setValue(_logBuf, HRM_DEV_LOG_MTU_SIZE);
         _pCharacteristicHrmDevLogPrint->notify();
-        _prevMillis = m;
         // hrmLogResetBuf();
     }
 }

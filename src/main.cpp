@@ -260,6 +260,7 @@ void loop()
     bleHR.hrmLogSetMillis((uint32_t *)&now);
     bleHR.hrmLogSetGyro(&gyroX, &gyroY, &gyroZ);
     bleHR.hrmLogSetAcc(&accX, &accY, &accZ);
+    bleHR.hrmLogSetAhrs(&pitch, &roll, &yaw);
     bleHR.hrmLogSetVal((int16_t *)&avgVal);
 #endif
 
