@@ -77,8 +77,12 @@ $ python3 hrm_dev_log_dump.py -a "xx:xx:xx:xx:xx:xx"
 - Python スクリプトは Python 3.7 で動作確認しています。
 - 別途 [bluepy](https://github.com/IanHarvey/bluepy) が必要です。
 
-また、以下の `misc/scripts/jsonl2series.js` で ApexChart.js で扱いやすいように series 化できます。
+ログは、`misc/scripts/jsonl2series.js` で [ApexCharts.js](https://apexcharts.com/) で扱いやすいように series 化できます。
 
 ```
 $ cat log.jsonl | node jsonl2series.js
 ```
+
+ApexChart.js での表示サンプル
+
+![ApexChart.js での表示サンプル](misc/images/2020-09-07-log-imu-ble.png)
