@@ -51,3 +51,34 @@ $ pio device monitor -b 115200 | grep -e "==== BMP:" | sed -e "s/==== BMP://" | 
 - `example*.png` が作成される。
 
 ※ 最後の1枚(1ファイル)は失敗することが多いので、確実にスクリーンショットを取得するならば、Button B を複数回クリックする方が無難です。
+
+## ログ(シリアル経由)
+
+以下のコマンドでログ出力用のファームウエアへ入れ替え後、モニターを開始。
+
+```
+$ pio run -e m5stick-c_logging -t upload
+$ pio device monitor -b 115200 | sed -e 's/,$/}/'
+```
+
+- ログはほぼ Jsonl 形式で出力されます(Jsonl 以外の行も出力されます)。
+
+## ログ(BLE経由)
+
+以下のコマンドでログ出力用のファームウエアへ入れ替え後、`misc/log/hrm_dev_log_dump.py` で接続。
+
+```
+$ pio run -e m5stick-c_logging -t upload
+$ python3 hrm_dev_log_dump.py -a "xx:xx:xx:xx:xx:xx"
+```
+
+- スクリプトを実行するデバイスとは事前にペアリングが必要です。[How to connect to peripheral device with pairing key? · Issue #227 · IanHarvey/bluepy · GitHub](https://github.com/IanHarvey/bluepy/issues/227) 等を参考に実施してください。
+- ログは Jsonl 形式で出力されます。
+- Python スクリプトは Python 3.7 で動作確認しています。
+- 別途 [bluepy](https://github.com/IanHarvey/bluepy) が必要です。
+
+また、以下の `misc/log/jsonl2series.js` で ApexChart.js で扱いやすいように series 化できます。
+
+```
+$ cat log.jsonl | node jsonl2series.js
+```
