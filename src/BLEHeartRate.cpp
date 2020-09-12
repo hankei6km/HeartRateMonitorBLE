@@ -42,12 +42,21 @@ void BLEHeartRate::init(std::string deviceName)
         }));
 
     BLEDevice::init(deviceName);
-#if defined(LOGGING)
-    // peripheral 側で set しても変更されない(err は 0 が返ってきている).
-    // 以下の onConnect のコールバック内で実行しても同じ.
-    // central 側から set してくる(変更のイベント?)のを待つもの?
-    BLEDevice::setMTU(HRM_DEV_LOG_MTU_SIZE);
-#endif
+
+    // BLEDevice::setMTU は esp_ble_gattc_send_mtu_req で利用される値の準備、
+    // esp_ble_gattc_send_mtu_req は GATT Client(centrarl) として接続されたときに
+    // １回だけ実行される。
+    // よって、今回は GATT server (peripheral) として動作するので実行しても効果はない。
+    // と思われ。
+    //
+    // BLEServer::updatePeerMTU は、接続されている peer device からの ESP_GATTS_MTU_EVT の
+    // 値を m_connectedServersMap に反映させるだけで、変更の要求を送信したりはしていない。
+    // よって、こちらも onConnect あたりで実行しても効果はない。
+    // (Web Bluetooth との接続で試してみたが、m_connectedServersMap の値を変更できても
+    // 相手側では 20bytes しか受信されなかった)。
+    // #if defined(LOGGING)
+    //     BLEDevice::setMTU(HRM_DEV_LOG_MTU_SIZE);
+    // #endif
 
     BLEServer *pServer = BLEDevice::createServer();
     pServer->setCallbacks(new _serverCBs(
